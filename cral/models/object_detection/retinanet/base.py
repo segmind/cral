@@ -1,5 +1,5 @@
 from cral.common import classification_networks
-from segmind import log_params_decorator
+# from segmind import log_params_decorator
 from tensorflow import keras
 
 from .postprocessing import ClipBoxes, FilterDetections, RegressBoxes
@@ -192,7 +192,7 @@ def retinanet(inputs,
     return keras.models.Model(inputs=inputs, outputs=pyramids, name=name)
 
 
-@log_params_decorator
+# @log_params_decorator
 def get_retinanet(feature_extractor,
                   num_classes,
                   num_anchors_per_location,

@@ -4,7 +4,7 @@ from cral.models.classification.darknet import \
     preprocess_input as darknet_preprocess_input
 from cral.models.classification.efficientnet import \
     preprocess_input as efficientnet_preprocess_input
-from segmind import log_params_decorator
+# from segmind import log_params_decorator
 from tensorflow.keras.applications.densenet import \
     preprocess_input as densenet_preprocess_input
 from tensorflow.keras.applications.inception_resnet_v2 import \
@@ -29,7 +29,7 @@ from tensorflow.keras.applications.xception import \
     preprocess_input as xception_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def DenseNet121(include_top=False,
                 weights='imagenet',
                 input_tensor=None,
@@ -85,7 +85,7 @@ def DenseNet121(include_top=False,
         classes=classes), densenet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def DenseNet169(include_top=False,
                 weights='imagenet',
                 input_tensor=None,
@@ -141,7 +141,7 @@ def DenseNet169(include_top=False,
         classes=classes), densenet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def DenseNet201(include_top=False,
                 weights='imagenet',
                 input_tensor=None,
@@ -197,7 +197,7 @@ def DenseNet201(include_top=False,
         classes=classes), densenet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def InceptionResNetV2(include_top=False,
                       weights='imagenet',
                       input_tensor=None,
@@ -267,7 +267,7 @@ def InceptionResNetV2(include_top=False,
     ), inception_resnet_v2_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def InceptionV3(include_top=False,
                 weights='imagenet',
                 input_tensor=None,
@@ -340,7 +340,7 @@ def InceptionV3(include_top=False,
     ), inception_v3_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def MobileNet(input_shape=None,
               alpha=1.0,
               depth_multiplier=1,
@@ -430,7 +430,7 @@ def MobileNet(input_shape=None,
     ), mobilenet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def MobileNetV2(input_shape=None,
                 alpha=1.0,
                 include_top=False,
@@ -521,7 +521,7 @@ def MobileNetV2(input_shape=None,
     ), mobilenet_v2_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def NASNetLarge(input_shape=None,
                 include_top=False,
                 weights='imagenet',
@@ -583,7 +583,7 @@ def NASNetLarge(input_shape=None,
         classes=classes), nasnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def NASNetMobile(input_shape=None,
                  include_top=False,
                  weights='imagenet',
@@ -645,7 +645,7 @@ def NASNetMobile(input_shape=None,
         classes=classes), nasnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def ResNet50(include_top=False,
              weights='imagenet',
              input_tensor=None,
@@ -702,7 +702,7 @@ def ResNet50(include_top=False,
         classes=classes), resnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def ResNet101(include_top=False,
               weights='imagenet',
               input_tensor=None,
@@ -758,7 +758,7 @@ def ResNet101(include_top=False,
         classes=classes), resnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def ResNet152(include_top=False,
               weights='imagenet',
               input_tensor=None,
@@ -814,7 +814,7 @@ def ResNet152(include_top=False,
         classes=classes), resnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def ResNet50V2(include_top=False,
                weights='imagenet',
                input_tensor=None,
@@ -879,7 +879,7 @@ def ResNet50V2(include_top=False,
     ), resnet_v2_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def ResNet101V2(include_top=False,
                 weights='imagenet',
                 input_tensor=None,
@@ -944,7 +944,7 @@ def ResNet101V2(include_top=False,
     ), resnet_v2_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def ResNet152V2(include_top=False,
                 weights='imagenet',
                 input_tensor=None,
@@ -1009,7 +1009,7 @@ def ResNet152V2(include_top=False,
     ), resnet_v2_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def VGG16(include_top=False,
           weights='imagenet',
           input_tensor=None,
@@ -1084,7 +1084,7 @@ def VGG16(include_top=False,
         classifier_activation=classifier_activation), vgg16_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def VGG19(include_top=False,
           weights='imagenet',
           input_tensor=None,
@@ -1159,7 +1159,7 @@ def VGG19(include_top=False,
         classifier_activation=classifier_activation), vgg19_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def Xception(include_top=False,
              weights='imagenet',
              input_tensor=None,
@@ -1232,7 +1232,7 @@ def Xception(include_top=False,
 #    return efficientnet_preprocess_input_org(x=x, backend=backend,**kwargs)
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB0(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1294,7 +1294,7 @@ def EfficientNetB0(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB1(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1356,7 +1356,7 @@ def EfficientNetB1(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB2(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1418,7 +1418,7 @@ def EfficientNetB2(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB3(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1480,7 +1480,7 @@ def EfficientNetB3(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB4(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1542,7 +1542,7 @@ def EfficientNetB4(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB5(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1604,7 +1604,7 @@ def EfficientNetB5(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB6(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1666,7 +1666,7 @@ def EfficientNetB6(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def EfficientNetB7(include_top=False,
                    weights='imagenet',
                    input_tensor=None,
@@ -1728,7 +1728,7 @@ def EfficientNetB7(include_top=False,
     ), efficientnet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def Darknet53(include_top=False,
               weights='imagenet',
               input_tensor=None,
@@ -1788,7 +1788,7 @@ def Darknet53(include_top=False,
         classifier_activation=classifier_activation), darknet_preprocess_input
 
 
-@log_params_decorator
+# @log_params_decorator
 def Detnet(include_top=False,
            weights='imagenet',
            input_tensor=None,
