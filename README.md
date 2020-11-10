@@ -22,4 +22,4 @@ CRAL has a modular design to enable you to use each of its components independen
 | Pipeline tools | Load and validate your data before you start training. |
 | Optimization and debugging | Integration with Experiment Tracking, HP Optimization and other toolsets to help faster and build transparent models |
 
-# Detailed documentation: (Link)[https://cral.segmind.com]
+# Detailed documentation: [Link](https://cral.segmind.com)
