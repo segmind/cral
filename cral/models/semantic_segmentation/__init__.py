@@ -3,6 +3,9 @@ from .deeplabv3 import (Deeplabv3Config, DeepLabv3Generator,
                         log_deeplabv3_config_params)
 from .FpnNet import (FpnNetConfig, FpnNetGenerator, FpnNetPredictor,
                      create_FpnNet, log_FpnNet_config_params)
+from .LinkNet import (LinkNetConfig, LinkNetGenerator,
+                      LinkNetPredictor, create_LinkNet,
+                      log_LinkNet_config_params)
 from .PspNet import (PspNetConfig, PspNetGenerator, PspNetPredictor,
                      create_PspNet, log_PspNet_config_params)
 from .SegNet import (SegNetConfig, SegNetGenerator, SegNetPredictor,
