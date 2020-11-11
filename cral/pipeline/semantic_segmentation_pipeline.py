@@ -107,8 +107,8 @@ class SemanticSegPipe(PipelineBase):
         feature_extractor = feature_extractor.lower()
 
         if isinstance(config, Deeplabv3Config):
-            from cral.models.semantic_segmentation import \
-                create_DeepLabv3Plus, log_deeplabv3_config_params
+            from cral.models.semantic_segmentation import (
+                create_DeepLabv3Plus, log_deeplabv3_config_params)
 
             assert isinstance(
                 config,
@@ -165,9 +165,10 @@ class SemanticSegPipe(PipelineBase):
             # deeplabv3 default losses
             loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
             architecture = 'deeplabv3plus'
+
         elif isinstance(config, UNetConfig):
-            from cral.models.semantic_segmentation import \
-                create_UNet, log_UNet_config_params
+            from cral.models.semantic_segmentation import (
+                create_UNet, log_UNet_config_params)
 
             assert isinstance(
                 config, UNetConfig), 'please provide a `UNetConfig()` object'
@@ -221,8 +222,8 @@ class SemanticSegPipe(PipelineBase):
 
         elif isinstance(config, PspNetConfig):
             print('entered pspnet')
-            from cral.models.semantic_segmentation import \
-                create_PspNet, log_PspNet_config_params
+            from cral.models.semantic_segmentation import (
+                create_PspNet, log_PspNet_config_params)
 
             assert isinstance(
                 config,
@@ -277,8 +278,8 @@ class SemanticSegPipe(PipelineBase):
 
         elif isinstance(config, SegNetConfig):
             print('entered segnet')
-            from cral.models.semantic_segmentation import \
-                create_SegNet, log_SegNet_config_params
+            from cral.models.semantic_segmentation import (
+                create_SegNet, log_SegNet_config_params)
 
             assert isinstance(
                 config,
@@ -324,6 +325,7 @@ class SemanticSegPipe(PipelineBase):
 
                 self.model.load_weights(
                     os.path.join(weights, 'variables', 'variables'))
+
             else:
                 assert False, 'Weights file is not supported'
 
@@ -333,8 +335,8 @@ class SemanticSegPipe(PipelineBase):
 
         elif isinstance(config, FpnNetConfig):
             print('entered fpnNet')
-            from cral.models.semantic_segmentation import \
-                create_FpnNet, log_FpnNet_config_params
+            from cral.models.semantic_segmentation import (
+                create_FpnNet, log_FpnNet_config_params)
 
             assert isinstance(
                 config,
@@ -389,8 +391,8 @@ class SemanticSegPipe(PipelineBase):
 
         elif isinstance(config, UnetPlusPlusConfig):
             print('entered unet++')
-            from cral.models.semantic_segmentation import \
-                create_UnetPlusPlus, log_UnetPlusPlus_config_params
+            from cral.models.semantic_segmentation import (
+                create_UnetPlusPlus, log_UnetPlusPlus_config_params)
 
             assert isinstance(
                 config, UnetPlusPlusConfig
@@ -572,8 +574,6 @@ class SemanticSegPipe(PipelineBase):
         if validation_batch_size is None:
             validation_batch_size = batch_size
 
-        # self.height = height
-        # self.width = width
         # num_classes = int(self.cral_meta_data['num_classes'])
         training_set_size = int(self.cral_meta_data['num_training_images'])
         test_set_size = int(self.cral_meta_data['num_test_images'])
@@ -603,8 +603,6 @@ class SemanticSegPipe(PipelineBase):
 
         train_tfrecords = os.path.join(tfrecord_dir, 'train*.tfrecord')
         test_tfrecords = os.path.join(tfrecord_dir, 'test*.tfrecord')
-        # from cral.augmentations.engine import ObjectDetection as \
-        #    objectdetection_augmentor
 
         if self.cral_meta_data['semanic_segmentation_meta'][
                 'architecture'] == 'deeplabv3plus':
@@ -638,6 +636,7 @@ class SemanticSegPipe(PipelineBase):
             else:
                 test_input_function = None
                 validation_steps = None
+
         elif self.cral_meta_data['semanic_segmentation_meta'][
                 'architecture'] == 'UNet':
 
@@ -649,13 +648,6 @@ class SemanticSegPipe(PipelineBase):
             assert isinstance(
                 unet_config, UNetConfig
             ), 'Expected an instance of cral.models.semantic_segmentation.UNetConfig'  # noqa: E501
-
-            # if self.aug_pipeline != None:
-            #     augmentation = objectdetection_augmentor(
-            #            self.aug_pipeline,
-            #            annotation_format=deeplabv3_config.input_anno_format)
-            # else:
-            #     augmentation = None
 
             augmentation = self.aug_pipeline
 
@@ -690,57 +682,10 @@ class SemanticSegPipe(PipelineBase):
                 pspnet_config, PspNetConfig
             ), 'Expected an instance of cral.models.semantic_segmentation.PspNetConfig'  # noqa: E501
 
-            # if self.aug_pipeline != None:
-            #     augmentation = objectdetection_augmentor(
-            #             self.aug_pipeline,
-            #             annotation_format=deeplabv3_config.input_anno_format)
-            # else:
-            #     augmentation = None
-
             augmentation = self.aug_pipeline
 
             data_gen = PspNetGenerator(
                 config=pspnet_config,
-                train_tfrecords=train_tfrecords,
-                test_tfrecords=test_tfrecords,
-                processing_func=self.preprocessing_fn,
-                augmentation=augmentation,
-                batch_size=batch_size)
-
-            train_input_function = data_gen.get_train_function()
-
-            if test_set_size > 0:
-
-                test_input_function = data_gen.get_test_function()
-                validation_steps = test_set_size // validation_batch_size
-
-            else:
-                test_input_function = None
-                validation_steps = None
-
-        elif self.cral_meta_data['semanic_segmentation_meta'][
-                'architecture'] == 'SegNet':
-
-            from cral.models.semantic_segmentation import SegNetGenerator
-
-            segnet_config = jsonpickle.decode(
-                self.cral_meta_data['semanic_segmentation_meta']['config'])
-
-            assert isinstance(
-                segnet_config, SegNetConfig
-            ), 'Expected an instance of cral.models.semantic_segmentation.SegNetConfig'  # noqa: E501
-
-            # if self.aug_pipeline != None:
-            #     augmentation = objectdetection_augmentor(
-            #            self.aug_pipeline,
-            #            annotation_format=deeplabv3_config.input_anno_format)
-            # else:
-            #     augmentation = None
-
-            augmentation = self.aug_pipeline
-
-            data_gen = SegNetGenerator(
-                config=segnet_config,
                 train_tfrecords=train_tfrecords,
                 test_tfrecords=test_tfrecords,
                 processing_func=self.preprocessing_fn,
@@ -770,17 +715,43 @@ class SemanticSegPipe(PipelineBase):
                 fpnNet_config, FpnNetConfig
             ), 'Expected an instance of cral.models.semantic_segmentation.FpnNetConfig'  # noqa: E501
 
-            # if self.aug_pipeline != None:
-            #     augmentation = objectdetection_augmentor(
-            #            self.aug_pipeline,
-            #            annotation_format=deeplabv3_config.input_anno_format)
-            # else:
-            #     augmentation = None
-
             augmentation = self.aug_pipeline
 
             data_gen = FpnNetGenerator(
                 config=fpnNet_config,
+                train_tfrecords=train_tfrecords,
+                test_tfrecords=test_tfrecords,
+                processing_func=self.preprocessing_fn,
+                augmentation=augmentation,
+                batch_size=batch_size)
+
+            train_input_function = data_gen.get_train_function()
+
+            if test_set_size > 0:
+
+                test_input_function = data_gen.get_test_function()
+                validation_steps = test_set_size // validation_batch_size
+
+            else:
+                test_input_function = None
+                validation_steps = None
+
+        elif self.cral_meta_data['semanic_segmentation_meta'][
+                'architecture'] == 'SegNet':
+
+            from cral.models.semantic_segmentation import SegNetGenerator
+
+            segnet_config = jsonpickle.decode(
+                self.cral_meta_data['semanic_segmentation_meta']['config'])
+
+            assert isinstance(
+                segnet_config, SegNetConfig
+            ), 'Expected an instance of cral.models.semantic_segmentation.SegNetConfig'  # noqa: E501
+
+            augmentation = self.aug_pipeline
+
+            data_gen = SegNetGenerator(
+                config=segnet_config,
                 train_tfrecords=train_tfrecords,
                 test_tfrecords=test_tfrecords,
                 processing_func=self.preprocessing_fn,
@@ -809,13 +780,6 @@ class SemanticSegPipe(PipelineBase):
             assert isinstance(
                 unetplusplus_config, UnetPlusPlusConfig
             ), 'Expected an instance of cral.models.semantic_segmentation.UnetPlusPlusConfig'  # noqa: E501
-
-            # if self.aug_pipeline != None:
-            #     augmentation = objectdetection_augmentor(
-            #            self.aug_pipeline,
-            #            annotation_format=deeplabv3_config.input_anno_format)
-            # else:
-            #     augmentation = None
 
             augmentation = self.aug_pipeline
 
@@ -850,13 +814,6 @@ class SemanticSegPipe(PipelineBase):
                 linknet_config, LinkNetConfig
             ), 'Expected an instance of cral.models.semantic_segmentation.LinkNetConfig'  # noqa: E501
 
-            # if self.aug_pipeline != None:
-            #     augmentation = objectdetection_augmentor(
-            #            self.aug_pipeline,
-            #            annotation_format=deeplabv3_config.input_anno_format)
-            # else:
-            #     augmentation = None
-
             augmentation = self.aug_pipeline
 
             data_gen = LinkNetGenerator(
@@ -877,6 +834,7 @@ class SemanticSegPipe(PipelineBase):
             else:
                 test_input_function = None
                 validation_steps = None
+
         else:
             raise ValueError('argument to `config` is not understood.')
 
@@ -886,21 +844,17 @@ class SemanticSegPipe(PipelineBase):
         # callbacks.append(KerasCallback(log_evry_n_step))
         # callbacks.append(KerasCallback())
         # callbacks.append(
-        #    checkpoint_callback(
-        #        snapshot_every_epoch=snapshot_every_n,
-        #        snapshot_path=snapshot_path,
-        #        checkpoint_prefix=snapshot_prefix,
-        #        save_h5=False))
+        #     checkpoint_callback(
+        #         snapshot_every_epoch=snapshot_every_n,
+        #         snapshot_path=snapshot_path,
+        #         checkpoint_prefix=snapshot_prefix,
+        #         save_h5=False))
 
         # Attach segmind.cral as an asset
         tf.io.gfile.copy(self.cral_file, 'segmind.cral', overwrite=True)
         cral_asset_file = tf.saved_model.Asset('segmind.cral')
 
         self.model.cral_file = cral_asset_file
-
-        log_param('training_steps_per_epoch', int(steps_per_epoch))
-        if test_set_size > 0:
-            log_param('val_steps_per_epoch', int(validation_steps))
 
         self.model.fit(
             x=train_input_function,
@@ -968,6 +922,37 @@ class SemanticSegPipe(PipelineBase):
                 dcrf=self.dcrf)
 
             return pred_object.predict
+
+        elif architecture == 'FpnNet':
+            if feature_extractor not in [
+                    'resnet50', 'resnet101', 'resnet152', 'resnet50v2',
+                    'resnet101v2', 'resnet152v2', 'vgg16', 'vgg19',
+                    'mobilenet', 'mobilenetv2'
+            ]:
+                raise ValueError(f'{feature_extractor} not yet supported ..')
+
+            from cral.models.semantic_segmentation import FpnNetPredictor
+            from cral.models.semantic_segmentation import create_FpnNet
+
+            fpnNet_config = jsonpickle.decode(
+                metainfo['semanic_segmentation_meta']['config'])
+            assert isinstance(
+                fpnNet_config, FpnNetConfig
+            ), 'Expected an instance of cral.models.semantic_segmentation.FpnNetConfig'  # noqa: E501
+
+            unused_model, preprocessing_fn = create_FpnNet(
+                feature_extractor, fpnNet_config, num_classes, weights=None)
+            del (unused_model)
+
+            pred_object = FpnNetPredictor(
+                height=fpnNet_config.height,
+                width=fpnNet_config.width,
+                model=self.model,
+                preprocessing_func=preprocessing_fn,
+                dcrf=self.dcrf)
+
+            return pred_object.predict
+
         elif architecture == 'UNet':
             if feature_extractor not in [
                     'mobilenet', 'resnet50', 'resnet101', 'resnet152', 'vgg16',
@@ -996,7 +981,6 @@ class SemanticSegPipe(PipelineBase):
                 dcrf=self.dcrf)
 
             return pred_object.predict
-
         elif architecture == 'PspNet':
             if feature_extractor not in [
                     'resnet50', 'resnet101', 'resnet152', 'resnet50v2',
@@ -1051,39 +1035,6 @@ class SemanticSegPipe(PipelineBase):
             pred_object = SegNetPredictor(
                 height=segnet_config.height,
                 width=segnet_config.width,
-                model=self.model,
-                preprocessing_func=preprocessing_fn,
-                dcrf=self.dcrf)
-
-            return pred_object.predict
-
-        elif architecture == 'FpnNet':
-            if feature_extractor not in [
-                    'resnet50', 'resnet101', 'resnet152', 'resnet50v2',
-                    'resnet101v2', 'resnet152v2', 'vgg16', 'vgg19',
-                    'mobilenet', 'mobilenetv2'
-            ]:
-                raise ValueError(f'{feature_extractor} not yet supported ..')
-
-            from cral.models.semantic_segmentation import FpnNetPredictor
-            from cral.models.semantic_segmentation import create_FpnNet
-
-            fpnNet_config = jsonpickle.decode(
-                metainfo['semanic_segmentation_meta']['config'])
-            assert isinstance(
-                fpnNet_config, FpnNetConfig
-            ), 'Expected an instance of cral.models.semantic_segmentation.FpnNetConfig'  # noqa: E501
-
-            unused_model, preprocessing_fn = create_FpnNet(
-                feature_extractor,
-                fpnNet_config,
-                num_classes,
-                weights=None)
-            del (unused_model)
-
-            pred_object = FpnNetPredictor(
-                height=fpnNet_config.height,
-                width=fpnNet_config.width,
                 model=self.model,
                 preprocessing_func=preprocessing_fn,
                 dcrf=self.dcrf)
