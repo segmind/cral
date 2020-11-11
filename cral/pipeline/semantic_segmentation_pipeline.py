@@ -11,6 +11,7 @@ from cral.data_versioning import segmentation_dataset_hasher
 from cral.models.semantic_segmentation import SparseMeanIoU
 from cral.models.semantic_segmentation.deeplabv3 import Deeplabv3Config
 from cral.models.semantic_segmentation.FpnNet import FpnNetConfig
+from cral.models.semantic_segmentation.LinkNet import LinkNetConfig
 from cral.models.semantic_segmentation.PspNet import PspNetConfig
 from cral.models.semantic_segmentation.SegNet import SegNetConfig
 from cral.models.semantic_segmentation.Unet import UNetConfig
@@ -1091,10 +1092,7 @@ class SemanticSegPipe(PipelineBase):
             ), 'Expected an instance of cral.models.semantic_segmentation.LinkNetConfig'  # noqa: E501
 
             unused_model, preprocessing_fn = create_LinkNet(
-                feature_extractor,
-                linknet_config,
-                num_classes,
-                weights=None)
+                feature_extractor, linknet_config, num_classes, weights=None)
             del (unused_model)
 
             pred_object = LinkNetPredictor(

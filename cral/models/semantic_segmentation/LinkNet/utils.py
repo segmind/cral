@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import InputSpec, Layer
 
-from cral.tracking import log_params
+# from cral.tracking import log_params
 
 
 class Upsample(Layer):
@@ -74,8 +74,8 @@ def log_LinkNet_config_params(config):
 
     assert isinstance(config,
                       LinkNetConfig), 'config not supported {}'.format(config)
-    config_data = vars(config)
-    log_params(config_data)
+    # config_data = vars(config)
+    # log_params(config_data)
 
 
 class LinkNetPredictor(object):
