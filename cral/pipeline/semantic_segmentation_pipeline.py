@@ -3,9 +3,8 @@ import os
 
 import jsonpickle
 import tensorflow as tf
-from cral.callbacks import checkpoint_callback
-from cral.tracking import get_experiment, log_artifact, KerasCallback, log_param
-# from cral.common import classification_networks
+# from cral.tracking import get_experiment, log_artifact, KerasCallback, log_param  # noqa: E501
+# from cral.callbacks import checkpoint_callback
 from cral.data_feeder.semantic_seg_data_feeder import \
     create_tfrecords as create_tfrecords_semantic_segmentation
 from cral.data_versioning import segmentation_dataset_hasher
@@ -16,9 +15,7 @@ from cral.models.semantic_segmentation.PspNet import PspNetConfig
 from cral.models.semantic_segmentation.SegNet import SegNetConfig
 from cral.models.semantic_segmentation.Unet import UNetConfig
 from cral.models.semantic_segmentation.UnetPlusPlus import UnetPlusPlusConfig
-from cral.models.semantic_segmentation.LinkNet import LinkNetConfig
 from cral.pipeline.core import PipelineBase
-from segmind import KerasCallback, log_param
 from tensorflow import keras
 
 
@@ -887,13 +884,13 @@ class SemanticSegPipe(PipelineBase):
             steps_per_epoch = training_set_size // batch_size
 
         # callbacks.append(KerasCallback(log_evry_n_step))
-        callbacks.append(KerasCallback())
-        callbacks.append(
-            checkpoint_callback(
-                snapshot_every_epoch=snapshot_every_n,
-                snapshot_path=snapshot_path,
-                checkpoint_prefix=snapshot_prefix,
-                save_h5=False))
+        # callbacks.append(KerasCallback())
+        # callbacks.append(
+        #    checkpoint_callback(
+        #        snapshot_every_epoch=snapshot_every_n,
+        #        snapshot_path=snapshot_path,
+        #        checkpoint_prefix=snapshot_prefix,
+        #        save_h5=False))
 
         # Attach segmind.cral as an asset
         tf.io.gfile.copy(self.cral_file, 'segmind.cral', overwrite=True)
