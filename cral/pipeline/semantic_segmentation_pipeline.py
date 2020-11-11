@@ -445,6 +445,62 @@ class SemanticSegPipe(PipelineBase):
             loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
             architecture = 'UnetPlusPlus'
 
+        elif isinstance(config, LinkNetConfig):
+            print('entered LinkNet')
+            from cral.models.semantic_segmentation import \
+                create_LinkNet, log_LinkNet_config_params
+
+            assert isinstance(
+                config,
+                LinkNetConfig), 'please provide a `LinkNetConfig()` object'
+
+            log_LinkNet_config_params(config)
+            base_trainable = True
+            if weights in ('imagenet', None):
+                self.model, self.preprocessing_fn = create_LinkNet(
+                    feature_extractor, config, num_classes, weights,
+                    base_trainable)
+            elif tf.saved_model.contains_saved_model(weights):
+                print('\nLoading Weights\n')
+                old_config = None
+                old_extractor = None
+                old_cral_path = os.path.join(weights, 'assets', 'segmind.cral')
+                if os.path.isfile(old_cral_path):
+                    with open(old_cral_path) as old_cral_file:
+                        dic = json.load(old_cral_file)
+
+                        if 'semanic_segmentation_meta' in dic.keys():
+                            if 'config' in dic[
+                                    'semanic_segmentation_meta'].keys():
+                                old_config = jsonpickle.decode(
+                                    dic['semanic_segmentation_meta']['config'])
+                            if 'feature_extractor' in dic[
+                                    'semanic_segmentation_meta'].keys():
+                                old_extractor = dic[
+                                    'semanic_segmentation_meta'][
+                                        'feature_extractor']
+
+                if None in (old_extractor, old_config):
+                    assert False, 'Weights file is not supported'
+                elif feature_extractor != old_extractor:
+                    assert False, f'feature_extractor mismatch {feature_extractor}!={old_extractor}'  # noqa: E501
+                # elif not (config.check_equality(old_config)):
+                elif vars(config) != vars(old_config):
+                    assert False, 'Weights could not be loaded'
+
+                self.model, self.preprocessing_fn = create_LinkNet(
+                    feature_extractor, config, num_classes, None,
+                    base_trainable)
+
+                self.model.load_weights(
+                    os.path.join(weights, 'variables', 'variables'))
+            else:
+                assert False, 'Weights file is not supported'
+
+            # deeplabv3 default losses
+            loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
+            architecture = 'LinkNet'
+
         else:
             raise ValueError('argument to `config` is not understood.')
 
@@ -746,6 +802,39 @@ class SemanticSegPipe(PipelineBase):
                 test_input_function = None
                 validation_steps = None
 
+        elif self.cral_meta_data['semanic_segmentation_meta'][
+                'architecture'] == 'LinkNet':
+
+            from cral.models.semantic_segmentation import LinkNetGenerator
+
+            linknet_config = jsonpickle.decode(
+                self.cral_meta_data['semanic_segmentation_meta']['config'])
+
+            assert isinstance(
+                linknet_config, LinkNetConfig
+            ), 'Expected an instance of cral.models.semantic_segmentation.LinkNetConfig'  # noqa: E501
+
+            augmentation = self.aug_pipeline
+
+            data_gen = LinkNetGenerator(
+                config=linknet_config,
+                train_tfrecords=train_tfrecords,
+                test_tfrecords=test_tfrecords,
+                processing_func=self.preprocessing_fn,
+                augmentation=augmentation,
+                batch_size=batch_size)
+
+            train_input_function = data_gen.get_train_function()
+
+            if test_set_size > 0:
+
+                test_input_function = data_gen.get_test_function()
+                validation_steps = test_set_size // validation_batch_size
+
+            else:
+                test_input_function = None
+                validation_steps = None
+
         else:
             raise ValueError('argument to `config` is not understood.')
 
@@ -979,6 +1068,38 @@ class SemanticSegPipe(PipelineBase):
             pred_object = UnetPlusPlusPredictor(
                 height=unetplusplus_config.height,
                 width=unetplusplus_config.width,
+                model=self.model,
+                preprocessing_func=preprocessing_fn,
+                dcrf=self.dcrf)
+
+            return pred_object.predict
+
+        elif architecture == 'LinkNet':
+            if feature_extractor not in [
+                    'resnet50', 'resnet101', 'resnet152', 'resnet50v2',
+                    'resnet101v2', 'resnet152v2', 'mobilenet'
+            ]:
+                raise ValueError(f'{feature_extractor} not yet supported ..')
+
+            from cral.models.semantic_segmentation import LinkNetPredictor
+            from cral.models.semantic_segmentation import create_LinkNet
+
+            linknet_config = jsonpickle.decode(
+                metainfo['semanic_segmentation_meta']['config'])
+            assert isinstance(
+                linknet_config, LinkNetConfig
+            ), 'Expected an instance of cral.models.semantic_segmentation.LinkNetConfig'  # noqa: E501
+
+            unused_model, preprocessing_fn = create_LinkNet(
+                feature_extractor,
+                linknet_config,
+                num_classes,
+                weights=None)
+            del (unused_model)
+
+            pred_object = LinkNetPredictor(
+                height=linknet_config.height,
+                width=linknet_config.width,
                 model=self.model,
                 preprocessing_func=preprocessing_fn,
                 dcrf=self.dcrf)

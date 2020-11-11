@@ -192,6 +192,33 @@ class Test_SegmentationPipeline(unittest.TestCase):
 
         tf.keras.backend.clear_session()
 
+    def test_linkNet(self):
+        from cral.pipeline import SemanticSegPipe
+        from cral.models.semantic_segmentation import LinkNetConfig
+
+        pipe = SemanticSegPipe()
+
+        pipe.add_data(
+            train_images_dir=os.path.join(self.dataset, 'images'),
+            train_anno_dir=os.path.join(self.dataset, 'annotations'),
+            annotation_format='rgb',
+            split=0.2)
+
+        pipe.lock_data()
+
+        pipe.set_algo(
+            feature_extractor='mobilenet', config=LinkNetConfig(224, 224))
+
+        pipe.train(
+            num_epochs=2,
+            snapshot_prefix='test_linknet',
+            snapshot_path='/tmp',
+            snapshot_every_n=10,
+            batch_size=1,
+            steps_per_epoch=2)
+
+        tf.keras.backend.clear_session()
+
 
 if __name__ == '__main__':
     unittest.main()
