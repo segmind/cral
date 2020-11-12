@@ -13,9 +13,6 @@ class MaskRCNNConfig(object):
     sub-class that inherits from this one and override properties
     that need to be changed.
     """
-    # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
-    # Useful if your code needs to do things differently depending on which
-    # experiment is running.
     NAME = None  # Override in sub-classes
 
     # NUMBER OF GPUs to use. When using only a CPU, this needs to be set to 1.
@@ -211,26 +208,18 @@ class MaskRCNNConfig(object):
 
         # Input image size
         if self.IMAGE_RESIZE_MODE == "crop":
-            # self.IMAGE_SHAPE = np.array([self.IMAGE_MIN_DIM,
-            #                              self.IMAGE_MIN_DIM,
-            #                              self.IMAGE_CHANNEL_COUNT])
             self.height = height
             self.width = width
             self.IMAGE_SHAPE = np.array([self.height, self.width,
                                          self.IMAGE_CHANNEL_COUNT])
 
         else:
-            # self.IMAGE_SHAPE = np.array([self.IMAGE_MAX_DIM,
-            #                             self.IMAGE_MAX_DIM,
-            #                             self.IMAGE_CHANNEL_COUNT])
             self.height = height
             self.width = width
             self.IMAGE_SHAPE = np.array([self.height, self.width,
                                          self.IMAGE_CHANNEL_COUNT])
 
         # Image meta data length
-        # See compose_image_meta() for details
-#         self.NUM_CLASSES = classes
         self.NUM_CLASSES = classes
         self.IMAGE_META_SIZE = 1 + 3 + 3 + 4 + 1 + self.NUM_CLASSES
 
@@ -244,9 +233,6 @@ class MaskRCNNConfig(object):
         print("\nConfigurations:")
         for key, val in self.to_dict().items():
             print(f"{key:30} {val}")
-        # for a in dir(self):
-        #     if not a.startswith("__") and not callable(getattr(self, a)):
-        #         print("{:30} {}".format(a, getattr(self, a)))
         print("\n")
 
 
@@ -255,8 +241,6 @@ def log_MaskRCNN_config_params(config):
     assert isinstance(config, MaskRCNNConfig), 'config not supported {}'.format(config)  # noqa: E501
     config_data = vars(config)
     log_params(config_data)
-
-# define functions mold_inputs and unmold_detections
 
 
 def mold_inputs(images, config):
@@ -368,9 +352,7 @@ def _get_anchors(config, image_shape):
     """Returns anchor pyramid for the given image size."""
     backbone_shapes = compute_backbone_shapes(config, image_shape)
     # Cache anchors and reuse if image shape is the same
-    # if not hasattr(self, "_anchor_cache"):
     anchor_cache = {}
-    # if not tuple(image_shape) in self._anchor_cache:
     # Generate Anchors
     a = generate_pyramid_anchors(
             config.RPN_ANCHOR_SCALES,
@@ -378,8 +360,6 @@ def _get_anchors(config, image_shape):
             backbone_shapes,
             config.BACKBONE_STRIDES,
             config.RPN_ANCHOR_STRIDE)
-    # Keep a copy of the latest anchors in pixel coordinates because
-    # it's used in inspect_model notebooks.
     # anchors = a
     # Normalize coordinates
     anchor_cache[tuple(image_shape)] = norm_boxes(a, image_shape[:2])
@@ -395,13 +375,10 @@ class MaskRCNNPredictor(object):
         self.width = width
         self.model = model
         self.config = config
-#         self.preprocessing_func = preprocessing_func
-#         self.allow_dcrf = dcrf
 
     def load_image(self, image_path):
         img = tf.keras.preprocessing.image.load_img(path=image_path)
         img_array = np.array(img)
-        # print(img_array.shape,img_array.dtype)
         return img_array
 
     def predict(self, image):
