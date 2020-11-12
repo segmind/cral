@@ -1,11 +1,8 @@
 import json
 import os
-
 import jsonpickle
 import tensorflow as tf
 
-from cral.callbacks import checkpoint_callback
-# from segmind import KerasCallback, log_param
 from cral.common import log_gpu_params
 from cral.data_feeder.instance_seg_data_feeder import \
     create_tfrecords as create_tfrecords_instance_segmentation
@@ -13,7 +10,8 @@ from cral.data_versioning import instanceSeg_dataset_hasher
 from cral.models.instance_segmentation.MaskRCNN import (MaskRCNNConfig,
                                                         log_MaskRCNN_config_params)  # noqa: E501
 from cral.pipeline.core import PipelineBase
-from cral.tracking import KerasCallback, log_param
+# from cral.tracking import KerasCallback, log_param
+# from cral.callbacks import checkpoint_callback
 
 
 class InstanceSegPipe(PipelineBase):
@@ -290,12 +288,12 @@ class InstanceSegPipe(PipelineBase):
             steps_per_epoch = training_set_size//batch_size
 
         # callbacks.append(KerasCallback(log_evry_n_step))
-        callbacks.append(KerasCallback())
-        callbacks.append(checkpoint_callback(
-            snapshot_every_epoch=snapshot_every_n,
-            snapshot_path=snapshot_path,
-            checkpoint_prefix=snapshot_prefix,
-            save_h5=True))
+        # callbacks.append(KerasCallback())
+        # callbacks.append(checkpoint_callback(
+        #    snapshot_every_epoch=snapshot_every_n,
+        #    snapshot_path=snapshot_path,
+        #    checkpoint_prefix=snapshot_prefix,
+        #    save_h5=True))
 
         # Attach segmind.cral as an asset
         self.cral_file_path = os.path.join(snapshot_path, 'segmind.cral')
