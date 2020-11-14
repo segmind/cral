@@ -18,6 +18,7 @@ from cral.models.object_detection.retinanet import (RetinanetConfig,
                                                     get_retinanet_fromconfig,
                                                     log_retinanet_config_params
                                                     )
+from cral.models.object_detection.SSD import (SSD300Config, decode_detections)
 # from cral.callbacks import checkpoint_callback
 from cral.models.object_detection.YoloV3 import (YoloV3Config,
                                                  log_yolo_config_params,
@@ -178,6 +179,62 @@ class ObjectDetectionPipe(PipelineBase):
                 'tf_op_layer_y3_pred': layer3_loss
             }
             architecture = 'yolo'
+
+        # SSD300
+        elif isinstance(config, SSD300Config):
+            # log_ssd_config_params(config)
+            self.objectdetector = 'ssd'
+
+            assert feature_extractor.lower(
+            ) == 'vgg16', 'Only VGG16 feature extractor is supported for now'
+            from cral.models.object_detection.SSD import SSDLoss
+            from cral.models.object_detection.SSD import create_ssd_model
+            if weights in ('imagenet', None):
+                self.model, self.preprocessing_fn, self.predictor_sizes = create_ssd_model(  # noqa: E501
+                    config,
+                    feature_extractor=feature_extractor,
+                    num_classes=num_classes,
+                    weights=weights)
+
+            elif tf.saved_model.contains_saved_model(weights):
+                print('\nLoading Weights\n')
+                old_config = None
+                old_extractor = None
+                old_cral_path = os.path.join(weights, 'assets', 'segmind.cral')
+                if os.path.isfile(old_cral_path):
+                    with open(old_cral_path) as old_cral_file:
+                        dic = json.load(old_cral_file)
+
+                        if 'object_detection_meta' in dic.keys():
+                            if 'config' in dic['object_detection_meta'].keys():
+                                old_config = jsonpickle.decode(
+                                    dic['object_detection_meta']['config'])
+                            if 'feature_extractor' in dic[
+                                    'object_detection_meta'].keys():
+                                old_extractor = dic['object_detection_meta'][
+                                    'feature_extractor']
+
+                if None in (old_extractor, old_config):
+                    assert False, 'Weights file is not supported'
+                elif feature_extractor != old_extractor:
+                    assert False, f'feature_extractor mismatch {feature_extractor}!={old_extractor}'  # noqa: E501
+                elif not (config.check_equality(old_config)):
+                    assert False, 'Weights could not be loaded'
+                # preprocessing fn to be checked what exactly does it say
+                self.model, self.preprocessing_fn, self.predictor_sizes = create_ssd_model(  # noqa: E501
+                    config,
+                    feature_extractor=feature_extractor,
+                    num_classes=num_classes,
+                    weights=None)
+                self.model.load_weights(
+                    os.path.join(weights, 'variables', 'variables'))
+            else:
+                assert False, 'Weights file is not supported'
+            loss = SSDLoss(
+                neg_pos_ratio=config.neg_pos_ratio, alpha=config.alpha)
+            loss = loss.compute_loss
+
+            architecture = 'ssd'
 
         elif isinstance(config, RetinanetConfig):
             log_retinanet_config_params(config)
@@ -369,6 +426,40 @@ class ObjectDetectionPipe(PipelineBase):
                 test_input_function = None
                 validation_steps = None
 
+        if self.cral_meta_data['object_detection_meta'][
+                'architecture'] == 'ssd':
+            from cral.models.object_detection.SSD import SSD300Generator
+            ssd_config = jsonpickle.decode(
+                self.cral_meta_data['object_detection_meta']['config'])
+            assert isinstance(
+                ssd_config, SSD300Config
+            ), 'Expected an instance of cral.models.object_detection.SSD300'
+
+            if self.aug_pipeline is not None:
+                augmentation = objectdetection_augmentor(
+                    self.aug_pipeline,
+                    annotation_format=ssd_config.input_anno_format)
+            else:
+                augmentation = None
+
+            parser = SSD300Generator(
+                config=ssd_config,
+                predictor_sizes=self.predictor_sizes,
+                num_classes=num_classes,
+                batch_size=batch_size,
+                preprocess_input=self.preprocessing_fn)
+
+            train_input_function = parser.parse_tfrecords(
+                filename=train_tfrecords)
+
+            if test_set_size > 0:
+                test_input_function = parser.parse_tfrecords(
+                    filename=test_tfrecords)
+                validation_steps = test_set_size / validation_batch_size
+            else:
+                test_input_function = None
+                validation_steps = None
+
         elif self.cral_meta_data['object_detection_meta'][
                 'architecture'] == 'retinanet':
 
@@ -536,6 +627,48 @@ class ObjectDetectionPipe(PipelineBase):
                     boxes_f.append(box)
 
                 return boxes_f, scores, labels
+
+            return prediction_func
+
+        elif architecture == 'ssd':
+            from tensorflow.keras.preprocessing.image import load_img
+            ssd_config = jsonpickle.decode(
+                metainfo['object_detection_meta']['config'])
+            assert isinstance(
+                ssd_config, SSD300Config
+            ), 'Expected an instance of cral.models.object_detection.SSD300Config'  # noqa: E501
+            from tensorflow.keras.applications.vgg16 import preprocess_input
+            model = decode_detections(
+                self.model,
+                ssd_config,
+                confidence_thresh=0.5,
+                iou_threshold=0.45,
+                top_k=200,
+                nms_max_output_size=400)
+
+            def prediction_func(img_path):
+                input_images = []
+                pil_input_images = []
+                # original_image_list = []
+                pil_image = load_img(
+                    img_path,
+                    target_size=(ssd_config.height, ssd_config.width))
+                original_image = load_img(img_path)
+                h = original_image.height
+                w = original_image.width
+
+                pil_input_images.append(pil_image)
+                img = np.array(pil_image)
+                input_images.append(img)
+                input_images = preprocess_input(np.array(input_images))
+
+                bboxes, scores, labels = model.predict(input_images)
+                bbox = bboxes[0].copy()
+                bbox[:, 0] = bbox[:, 0] * (h / ssd_config.height)
+                bbox[:, 1] = bbox[:, 1] * (w / ssd_config.width)
+                bbox[:, 2] = bbox[:, 2] * (h / ssd_config.height)
+                bbox[:, 3] = bbox[:, 3] * (w / ssd_config.width)
+                return bbox, scores.flatten(), labels.flatten()
 
             return prediction_func
 

@@ -31,7 +31,7 @@ class Test_DetectionPipeline(unittest.TestCase):
     def setup(self):
         self.dataset = cls.dataset
 
-    def step_retinanet(self):
+    def test_retinanet(self):
         from cral.pipeline import ObjectDetectionPipe
         from cral.models.object_detection import RetinanetConfig
 
@@ -58,7 +58,7 @@ class Test_DetectionPipeline(unittest.TestCase):
 
         tf.keras.backend.clear_session()
 
-    def step_yolov3(self):
+    def test_yolov3(self):
         from cral.pipeline import ObjectDetectionPipe
         from cral.models.object_detection import YoloV3Config
 
@@ -85,17 +85,32 @@ class Test_DetectionPipeline(unittest.TestCase):
 
         tf.keras.backend.clear_session()
 
-    def _steps(self):
-        for name in dir(self):  # dir() result is implicitly sorted
-            if name.startswith('step'):
-                yield name, getattr(self, name)
+    def test_ssd(self):
+        from cral.pipeline import ObjectDetectionPipe
+        from cral.models.object_detection import SSD300Config
 
-    def test_steps(self):
-        for name, step in self._steps():
-            try:
-                step()
-            except Exception as e:
-                self.fail('{} failed ({}: {})'.format(step, type(e), e))
+        pipe = ObjectDetectionPipe()
+
+        pipe.add_data(
+            train_images_dir=os.path.join(self.dataset, 'images'),
+            train_anno_dir=os.path.join(self.dataset, 'annotations',
+                                        'pascalvoc_xml'),
+            annotation_format='pascal_voc',
+            split=0.2)
+
+        pipe.lock_data()
+
+        pipe.set_algo(feature_extractor='vgg16', config=SSD300Config())
+
+        pipe.train(
+            num_epochs=2,
+            snapshot_prefix='test_ssd',
+            snapshot_path='/tmp',
+            snapshot_every_n=10,
+            batch_size=1,
+            steps_per_epoch=2)
+
+        tf.keras.backend.clear_session()
 
 
 if __name__ == '__main__':

@@ -6,6 +6,10 @@ from cral.models.object_detection.retinanet import (RetinanetConfig,
                                                     RetinanetGenerator,
                                                     get_retinanet,
                                                     get_retinanet_fromconfig)
+from cral.models.object_detection.SSD import (SSD300Config, SSDLoss,
+                                              create_ssd_model,
+                                              decode_detections,
+                                              log_ssd_config_params)
 from cral.models.object_detection.YoloV3 import YoloV3Config
 
 retinanet_resnet50 = partial(get_retinanet, 'resnet50')
