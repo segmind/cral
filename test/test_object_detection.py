@@ -128,8 +128,8 @@ class Test_DetectionPipeline(unittest.TestCase):
         meta_info = pipe.lock_data()
 
         pipe.set_algo(feature_extractor='resnet101',
-                      config=FasterRCNNConfig(height=256,
-                                              width=256),
+                      config=FasterRCNNConfig(height=1024,
+                                              width=1024),
                       weights='imagenet')
 
         pipe.train(
