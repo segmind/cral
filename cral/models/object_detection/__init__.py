@@ -1,7 +1,10 @@
 from functools import partial
 
 from cral.models.object_detection.object_detection_utils import (
-    Predictor, annotate_image, convert_to_coco)
+    Predictor, annotate_image, convert_to_coco, display_image)
+from cral.models.object_detection.FasterRCNN import (
+    FasterRCNNConfig, FasterRCNNGenerator, FasterRCNNPredictor,
+    create_FasterRCNN, log_FasterRCNN_config_params)
 from cral.models.object_detection.retinanet import (RetinanetConfig,
                                                     RetinanetGenerator,
                                                     get_retinanet,
