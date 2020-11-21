@@ -112,6 +112,34 @@ class Test_DetectionPipeline(unittest.TestCase):
 
         tf.keras.backend.clear_session()
 
+    def test_fasterrcnn(self):
+        from cral.pipeline import ObjectDetectionPipe
+        from cral.models.object_detection import FasterRCNNConfig
+
+        pipe = ObjectDetectionPipe()
+
+        pipe.add_data(
+            train_images_dir=os.path.join(self.dataset, 'images'),
+            train_anno_dir=os.path.join(self.dataset, 'annotations',
+                                        'pascalvoc_xml'),
+            annotation_format='pascal_voc',
+            split=0.2)
+
+        meta_info = pipe.lock_data()
+
+        pipe.set_algo(feature_extractor='resnet101',
+                      config=FasterRCNNConfig(height=1024,
+                                              width=1024),
+                      weights='imagenet')
+
+        pipe.train(
+            num_epochs=2,
+            snapshot_prefix='test_fasterrcnn',
+            snapshot_path='/tmp',
+            snapshot_every_n=1,
+            steps_per_epoch=2)
+
+        tf.keras.backend.clear_session()
 
 if __name__ == '__main__':
     unittest.main()

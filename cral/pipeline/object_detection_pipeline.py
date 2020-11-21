@@ -13,7 +13,8 @@ from cral.data_feeder.object_detection_parallel_data_feeder import \
 from cral.common import classification_networks
 
 # from cral.tracking import get_experiment, log_artifact, KerasCallback, log_param  # noqa: E501
-
+from cral.models.object_detection.FasterRCNN import (FasterRCNNConfig,
+                                                     log_FasterRCNN_config_params)  # noqa: E501
 from cral.models.object_detection.retinanet import (RetinanetConfig,
                                                     get_retinanet_fromconfig,
                                                     log_retinanet_config_params
@@ -23,6 +24,7 @@ from cral.models.object_detection.SSD import (SSD300Config, decode_detections)
 from cral.models.object_detection.YoloV3 import (YoloV3Config,
                                                  log_yolo_config_params,
                                                  create_yolo_model)
+from tensorflow.python.eager.context import eager_mode, graph_mode
 
 
 class ObjectDetectionPipe(PipelineBase):
@@ -76,6 +78,7 @@ class ObjectDetectionPipe(PipelineBase):
                                                       self.dataset_csv_path)
 
         self.update_project_file(meta_info)
+        return meta_info
 
     def set_aug(self, aug):
         self.aug_pipeline = aug
@@ -298,30 +301,118 @@ class ObjectDetectionPipe(PipelineBase):
             loss = {'regression': smooth_l1(), 'classification': focal()}
 
             architecture = 'retinanet'
+
+        elif isinstance(config, FasterRCNNConfig):
+            with graph_mode():
+                assert not tf.executing_eagerly()
+                # from cral.models.object_detection import log_FasterRCNN_config_params  # noqa: E501
+                from cral.models.object_detection import create_FasterRCNN
+
+                assert isinstance(config, FasterRCNNConfig), 'please provide a `FasterRCNNConfig()` object'  # noqa: E501
+
+#               config['NUM_ClASSES'] = num_classes
+#               print(config.NUM_ClASSES)
+                num_classes = int(self.cral_meta_data['num_classes'])
+                print(num_classes)
+                log_FasterRCNN_config_params(config)
+                optimizer_frcnn = tf.keras.optimizers.SGD(lr=1e-4, momentum=0.9, clipnorm=5.0)  # noqa: E501
+
+                if weights in ('imagenet', None):
+                    self.model = create_FasterRCNN(feature_extractor,
+                                                   config, num_classes,
+                                                   weights, base_trainable,
+                                                   mode='training')
+
+                elif tf.saved_model.contains_saved_model(weights):
+                    print('\nLoading Weights\n')
+                    old_config = None
+                    old_extractor = None
+                    segmind_cral_path = os.path.dirname(weights)
+                    old_cral_path = os.path.join(segmind_cral_path,
+                                                 'segmind.cral')
+                    if os.path.isfile(old_cral_path):
+                        with open(old_cral_path) as old_cral_file:
+                            dic = json.load(old_cral_file)
+
+                            if 'object_detection_meta' in dic.keys():
+                                if 'config' in dic['object_detection_meta'].keys():  # noqa: E501
+                                    old_config = jsonpickle.decode(
+                                      dic['object_detection_meta']['config'])
+                                if 'feature_extractor' in dic[
+                                  'object_detection_meta'].keys():
+                                    old_extractor = dic['object_detection_meta'][  # noqa: E501
+                                      'feature_extractor']
+
+                    if None in (old_extractor, old_config):
+                        assert False, 'Weights file is not supported'
+                    elif feature_extractor != old_extractor:
+                        assert False, f'feature_extractor mismatch {feature_extractor} != {old_extractor}'  # noqa: E501
+                    # elif not (config.check_equality(old_config)):
+                    elif vars(config) != vars(old_config):
+                        assert False, 'Weights could not be loaded'
+
+                    self.model = create_FasterRCNN(feature_extractor,
+                                                   config, num_classes,
+                                                   None, base_trainable,
+                                                   mode='training')
+
+                    self.model.load_weights(
+                      os.path.join(weights, 'variables', 'variables'))
+                else:
+                    assert False, 'Weights file is not supported'
+
+                loss_names = ['rpn_class_loss', 'rpn_bbox_loss',
+                              'rcnn_class_loss', 'rcnn_bbox_loss']
+                for name in loss_names:
+                    layer = self.model.get_layer(name)
+                    loss = (tf.reduce_mean(input_tensor=layer.output, keepdims=True) * config.LOSS_WEIGHTS.get(name, 1.))  # noqa: E501
+                    self.model.add_loss(loss)
+                reg_losses = [tf.keras.regularizers.l2(config.WEIGHT_DECAY)(w) / tf.cast(tf.size(input=w), tf.float32) for w in self.model.trainable_weights if 'gamma' not in w.name and 'beta' not in w.name]  # noqa: E501
+                self.model.add_loss(tf.add_n(reg_losses))
+                print('Losses added')
+                architecture = 'FasterRCNN'
+
         else:
             raise ValueError('argument to `config` is not understood.')
 
-        # custom image normalizing function
-        if preprocessing_fn is not None:
-            self.preprocessing_fn = preprocessing_fn
+        if isinstance(config, FasterRCNNConfig):
+            with graph_mode():
+                assert not tf.executing_eagerly()
+                # Model parallelism
+                if distribute_strategy is None:
+                    self.model.compile(optimizer=optimizer_frcnn, loss=[None] * len(self.model.outputs))  # noqa: E501
+                else:
+                    with distribute_strategy.scope():
+                        self.model.compile(optimizer=optimizer_frcnn, loss=[None] * len(self.model.outputs))  # noqa: E501
+                print('model compiled')
+                for name in loss_names:
+                    layer = self.model.get_layer(name)
+                    self.model.metrics_names.append(name)
+                    loss = (tf.reduce_mean(input_tensor=layer.output, keepdims=True) * config.LOSS_WEIGHTS.get(name, 1.))  # noqa: E501
+                    self.model.add_metric(loss, name=name, aggregation='mean')
+                print('Metrics added')
 
-        @tf.function(
-            input_signature=[tf.TensorSpec([None, None, 3], dtype=tf.float32)])
-        def _preprocess(image_array):
-            """tf.function-deocrated version of preprocess_"""
-            im_arr = self.preprocessing_fn(image_array)
-            input_batch = tf.expand_dims(im_arr, axis=0)
-            return input_batch
-
-        # Attach function to Model
-        self.model.preprocess = _preprocess
-
-        # Model parallelism
-        if distribute_strategy is None:
-            self.model.compile(loss=loss, optimizer=optimizer)
         else:
-            with distribute_strategy.scope():
+            # custom image normalizing function
+            if preprocessing_fn is not None:
+                self.preprocessing_fn = preprocessing_fn
+
+            @tf.function(input_signature=[tf.TensorSpec([None, None, 3], dtype=tf.float32)])  # noqa: E501
+            def _preprocess(image_array):
+                """tf.function-deocrated version of preprocess_"""
+                im_arr = self.preprocessing_fn(image_array)
+                input_batch = tf.expand_dims(im_arr, axis=0)
+                return input_batch
+
+            # Attach function to Model
+            self.model.preprocess = _preprocess
+
+            # Model parallelism
+            if distribute_strategy is None:
                 self.model.compile(loss=loss, optimizer=optimizer)
+            else:
+                with distribute_strategy.scope():
+                    self.model.compile(loss=loss, optimizer=optimizer)
 
         algo_meta = dict(
             feature_extractor=feature_extractor,
@@ -502,6 +593,36 @@ class ObjectDetectionPipe(PipelineBase):
                 test_input_function = None
                 validation_steps = None
 
+        elif self.cral_meta_data['object_detection_meta'][
+          'architecture'] == 'FasterRCNN':
+            with graph_mode():
+                assert not tf.executing_eagerly()
+                from cral.models.object_detection import FasterRCNNGenerator
+
+                fasterrcnn_config = jsonpickle.decode(
+                  self.cral_meta_data['object_detection_meta']['config'])
+
+                assert isinstance(fasterrcnn_config, FasterRCNNConfig), 'Expected an instance of cral.models.object_detection.FasterRCNNConfig'  # noqa: E501
+
+                data_gen = FasterRCNNGenerator(
+                    config=fasterrcnn_config,
+                    train_tfrecords=train_tfrecords,
+                    test_tfrecords=test_tfrecords,
+                    # processing_func=self.preprocessing_fn,
+                    # augmentation=augmentation,
+                    batch_size=batch_size, num_classes=num_classes)
+
+                train_input_function = data_gen.get_train_function()
+
+                if test_set_size > 0:
+
+                    test_input_function = data_gen.get_test_function()
+                    validation_steps = test_set_size // validation_batch_size
+
+                else:
+                    test_input_function = None
+                    validation_steps = None
+
         if steps_per_epoch is None:
             steps_per_epoch = training_set_size / batch_size
 
@@ -514,34 +635,59 @@ class ObjectDetectionPipe(PipelineBase):
         #     save_h5=False))
 
         # Attach segmind.cral as an asset
-        tf.io.gfile.copy(self.cral_file, 'segmind.cral', overwrite=True)
+        self.cral_file_path = os.path.join(snapshot_path, 'segmind.cral')
+        tf.io.gfile.copy(self.cral_file, self.cral_file_path, overwrite=True)
         cral_asset_file = tf.saved_model.Asset('segmind.cral')
+
+        directory = os.getcwd()
+        self.cral_path = os.path.join(directory, 'segmind.cral')
+        tf.io.gfile.copy(self.cral_file, self.cral_path, overwrite=True)
 
         self.model.cral_file = cral_asset_file
 
         # log_param('training_steps_per_epoch', int(steps_per_epoch))
         # if test_set_size>0:
         #     log_param('val_steps_per_epoch', int(validation_steps))
+        if self.cral_meta_data['object_detection_meta'][
+          'architecture'] == 'FasterRCNN':
+            with graph_mode():
+                assert not tf.executing_eagerly()
+                self.model.fit(
+                    x=train_input_function,
+                    epochs=num_epochs,
+                    callbacks=callbacks,
+                    steps_per_epoch=steps_per_epoch,
+                    validation_data=test_input_function,
+                    validation_steps=validation_steps,
+                    validation_freq=validate_every_n)
+        else:
+            self.model.fit(
+                x=train_input_function,
+                epochs=num_epochs,
+                callbacks=callbacks,
+                steps_per_epoch=steps_per_epoch,
+                validation_data=test_input_function,
+                validation_steps=validation_steps,
+                validation_freq=validate_every_n)
 
-        self.model.fit(
-            x=train_input_function,
-            epochs=num_epochs,
-            callbacks=callbacks,
-            steps_per_epoch=steps_per_epoch,
-            validation_data=test_input_function,
-            validation_steps=validation_steps,
-            validation_freq=validate_every_n)
+        if self.cral_meta_data['object_detection_meta'][
+          'architecture'] == 'FasterRCNN':
+            with graph_mode():
+                final_weights_path = os.path.join(
+                  snapshot_path, str(snapshot_prefix)+'_final.h5')
+                self.model.save_weights(filepath=final_weights_path,
+                                        overwrite=True)
+                print('Saved the final weights to :\n {}'.format(final_weights_path))  # noqa: E501
+        else:
+            final_model_path = os.path.join(snapshot_path, str(snapshot_prefix)+'_final')  # noqa: E501
 
-        final_model_path = os.path.join(snapshot_path,
-                                        str(snapshot_prefix) + '_final')
+            self.model.save(
+                  filepath=final_model_path,
+                  overwrite=True)
 
-        self.model.save(filepath=final_model_path, overwrite=True)
-
-        print('Saved the final Model to :\n {}'.format(final_model_path))
+            print('Saved the final Model to :\n {}'.format(final_model_path))
 
     def prediction_model(self, checkpoint_file):
-
-        self.model = keras.models.load_model(checkpoint_file, compile=False)
 
         try:
             location_to_cral_file = self.model.cral_file.asset_path.numpy()
@@ -564,7 +710,7 @@ class ObjectDetectionPipe(PipelineBase):
             #     load_model, RetinanetPredictor)
             from cral.models.object_detection.retinanet.base import \
                 get_prediction_model
-
+            self.model = keras.models.load_model(checkpoint_file, compile=False)  # noqa: E501
             retinanet_config = jsonpickle.decode(
                 metainfo['object_detection_meta']['config'])
             assert isinstance(
@@ -597,6 +743,7 @@ class ObjectDetectionPipe(PipelineBase):
         elif architecture == 'yolo':
             from cral.models.object_detection.YoloV3.predict import (
                 freeze_model, detect_image)
+            self.model = keras.models.load_model(checkpoint_file, compile=False)  # noqa: E501
             yolo_config = jsonpickle.decode(
                 metainfo['object_detection_meta']['config'])
             assert isinstance(
@@ -632,6 +779,7 @@ class ObjectDetectionPipe(PipelineBase):
 
         elif architecture == 'ssd':
             from tensorflow.keras.preprocessing.image import load_img
+            self.model = keras.models.load_model(checkpoint_file, compile=False)  # noqa: E501
             ssd_config = jsonpickle.decode(
                 metainfo['object_detection_meta']['config'])
             assert isinstance(
@@ -671,6 +819,51 @@ class ObjectDetectionPipe(PipelineBase):
                 return bbox, scores.flatten(), labels.flatten()
 
             return prediction_func
+
+        elif architecture == 'FasterRCNN':
+
+            from cral.models.object_detection import create_FasterRCNN
+            try:
+                location_to_cral_file = os.path.join(
+                  os.path.dirname(checkpoint_file), 'segmind.cral')
+                with open(location_to_cral_file) as f:
+                    metainfo = json.loads(f.read())
+                print(metainfo)
+
+            except AttributeError:
+                print("Couldn't locate any cral config file, probably this model was not trained using cral, or may be corrupted")  # noqa: E501
+
+            architecture = metainfo['object_detection_meta']['architecture']
+            num_classes = int(metainfo['num_classes'])
+            feature_extractor = metainfo['object_detection_meta'][
+              'feature_extractor']
+            weights = 'imagenet'
+            fasterrcnn_config = jsonpickle.decode(
+              metainfo['object_detection_meta']['config'])
+
+            if isinstance(fasterrcnn_config, FasterRCNNConfig):
+                assert isinstance(fasterrcnn_config, FasterRCNNConfig), 'Please provide a `FasterRCNNConfig()` object.'  # noqa: E501
+
+            if feature_extractor not in ['resnet50', 'resnet101']:
+                raise ValueError(f'{feature_extractor} not yet supported ..')
+            self.prediction_model = create_FasterRCNN(feature_extractor,
+                                                      fasterrcnn_config,
+                                                      num_classes, weights,
+                                                      False,
+                                                      mode='inference')
+            self.prediction_model.load_weights(checkpoint_file,
+                                               by_name=True,
+                                               skip_mismatch=True)
+
+            from cral.models.object_detection import FasterRCNNPredictor
+            pred_object = FasterRCNNPredictor(
+                height=fasterrcnn_config.height,
+                width=fasterrcnn_config.width,
+                model=self.prediction_model,
+                num_classes=num_classes,
+                config=fasterrcnn_config)
+
+            return pred_object.predict
 
         else:
             print('{} Not yet supported'.format(architecture))
