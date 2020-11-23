@@ -5,7 +5,6 @@ cral.egg-info/
 pydocs/
 docs/
 mkdocs/
-*.c
 *.so
 build/
 dist/
