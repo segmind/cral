@@ -21,9 +21,9 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -y
-        pip3 install numpy
-        python3 -m pip install --upgrade pip
-        pip3 install setuptools wheel twine
+        sudo pip3 install numpy
+        sudo python3 -m pip install --upgrade pip
+        sudo pip3 install setuptools wheel twine
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
