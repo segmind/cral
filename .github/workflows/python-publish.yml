@@ -20,19 +20,19 @@ jobs:
         python-version: '3.6'
     - name: Install dependencies
       run: |
-        python3 -m pip install --upgrade pip
-        pip3 install setuptools wheel twine auditwheel numpy
-        apt-get install -y patchelf
+        sudo python3 -m pip install --upgrade pip
+        sudo pip3 install setuptools wheel twine auditwheel numpy
+        sudo apt-get install -y patchelf
 
     - name: Build
       run: |
-        python3 setup.py build_ext --inplace
-        python3 setup.py sdist bdist_wheel
+        sudo python3 setup.py build_ext --inplace
+        sudo python3 setup.py sdist bdist_wheel
 
     - name: Repair and Publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        auditwheel repair dist/*.whl
+        sudo auditwheel repair dist/*.whl
         twine upload wheelhouse/*
