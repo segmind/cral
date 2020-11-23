@@ -127,10 +127,10 @@ class Test_DetectionPipeline(unittest.TestCase):
 
         meta_info = pipe.lock_data()
 
-        pipe.set_algo(feature_extractor='resnet101',
-                      config=FasterRCNNConfig(height=1024,
-                                              width=1024),
-                      weights='imagenet')
+        pipe.set_algo(
+            feature_extractor='resnet101',
+            config=FasterRCNNConfig(height=256, width=256),
+            weights='imagenet')
 
         pipe.train(
             num_epochs=2,
@@ -140,6 +140,7 @@ class Test_DetectionPipeline(unittest.TestCase):
             steps_per_epoch=2)
 
         tf.keras.backend.clear_session()
+
 
 if __name__ == '__main__':
     unittest.main()

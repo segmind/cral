@@ -55,11 +55,12 @@ setup(
     install_requires=[
         'tqdm',
         'xxhash',
+        'pandas',
         # 'opencv-python==3.4.2.17',
         'albumentations==0.4.5',
         'jsonpickle',
         'pycocotools',
-        # 'pydensecrf'
+        'pydensecrf'
     ],
     ext_modules=extensions,
     include_dirs=[numpy.get_include()],
