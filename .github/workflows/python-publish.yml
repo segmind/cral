@@ -20,6 +20,7 @@ jobs:
         python-version: '3.6'
     - name: Install dependencies
       run: |
+        apt-get update -y
         pip3 install numpy
         python3 -m pip install --upgrade pip
         pip3 install setuptools wheel twine
@@ -28,6 +29,5 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        apt-get update -y
         python3 setup.py sdist bdist_wheel
         twine upload dist/*
