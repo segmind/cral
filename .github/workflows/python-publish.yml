@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo python3 -m pip install --upgrade pip
-        sudo pip3 install setuptools wheel twine auditwheel numpy
+        sudo pip3 install -U setuptools wheel twine auditwheel numpy
         sudo apt-get install -y patchelf
 
     - name: Build

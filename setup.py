@@ -72,6 +72,7 @@ setup(
         'segmentation', 'keras', 'tensorflow-keras'
     ],
     description='CRAL: Library for CNNs',
+    long_description_content_type='text/markdown',
     long_description=open('README.md').read(),
     license='Apache License 2.0',
     classifiers=[
