@@ -1,4 +1,7 @@
 ![Upload Python Package](https://github.com/segmind/cral/workflows/Upload%20Python%20Package/badge.svg)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/segmind/cral)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/cral)
+![PyPI](https://img.shields.io/pypi/v/cral)
 # CNN Research Abstraction Library
 
 The CNN Research Abstraction Library or CRAL in short is a deep learning computer vision library for data scientists, researchers, and developers. With a primary focus on applied deep learning, the CRAL library encourages rapid development and comes with ready-to-use state-of-the-art networks and other pragmatic tools for a variety of applications in the computer vision space.
